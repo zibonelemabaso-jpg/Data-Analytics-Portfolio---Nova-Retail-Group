@@ -1,0 +1,350 @@
+WITH TableCounts AS (
+  SELECT 'PRODUCTS' AS EntityType, COUNT(*) AS TotalRecords
+  FROM workspace.default.products
+
+  UNION ALL
+
+  SELECT 'CUSTOMERS' AS EntityType, COUNT(*) AS TotalRecords
+  FROM workspace.default.customers
+
+  UNION ALL
+
+  SELECT 'SALES' AS EntityType, COUNT(*) AS TotalRecords
+  FROM workspace.default.sales
+
+  UNION ALL
+
+  SELECT 'CUSTOMER FEEDBACK' AS EntityType, COUNT(*) AS TotalRecords
+  FROM workspace.default.customer_feedback
+)
+SELECT entitytype,SUM(totalrecords) AS GrandTotalRecords
+FROM TableCounts
+GROUP BY entitytype;
+
+--Part 1
+
+--Question 1.1
+SELECT ProductID,ProductName,UnitPrice
+FROM workspace.default.products
+ORDER BY UnitPrice DESC;
+
+--Question 1.2
+SELECT Region, COUNT(*) AS NumberOfCustomers
+FROM workspace.default.customers
+GROUP BY Region
+ORDER BY NumberOfCustomers DESC;
+
+--Question 1.3
+SELECT OrderID,OrderDate,TotalSales
+FROM workspace.default.sales
+LIMIT 10;
+
+--Question 1.4
+SELECT  ProductName, Category,UnitPrice
+FROM workspace.default.products
+WHERE UnitPrice < 1000;
+
+--Question 1.4
+SELECT Satisfaction,COUNT(*) AS FeedbackCount
+FROM workspace.default.customer_feedback
+GROUP BY Satisfaction
+ORDER BY FeedbackCount DESC;
+
+--PART 2
+
+--Question 2.1
+SELECT p.Category , SUM(s.Quantity * s.UnitPrice) AS TotalRevenue,SUM(s.Profit) AS TotalPrice
+FROM workspace.default.Sales s
+JOIN workspace.default.products P ON p.ProductID = s.ProductID
+GROUP BY p.Category
+ORDER BY TotalRevenue DESC;
+
+
+--Question 2.2
+
+SELECT c.CustomerID ,concat(c.FirstName,' ',c.LastName) AS CustomerName,SUM(s.TotalSales) AS TotalSales
+FROM workspace.default.customers c
+JOIN workspace.default.sales s ON c.CustomerID = s.CustomerID
+GROUP BY c.CustomerID,c.FirstName,c.LastName
+ORDER BY TotalSales DESC
+LIMIT 10;
+
+--Question 2.3
+
+SELECT EXTRACT(YEAR FROM s.OrderDate)AS Year,extract(month from s.OrderDate) AS Month,SUM(s.TotalSales) AS TotalSales
+FROM workspace.default.sales s
+WHERE EXTRACT (YEAR FROM s.OrderDate) = 2024
+GROUP BY 
+extract (YEAR FROM s.OrderDate),
+extract(month from s.OrderDate)
+ORDER BY year asc,
+month asc;
+
+--Question 2.4
+SELECT Channel,COUNT(OrderID) AS NumberOfOrders,AVG(TotalSales) AS AverageSales,SUM(TotalSales)AS TotalNumberOfSales
+FROM workspace.default.sales
+GROUP BY Channel
+ORDER BY TotalNumberOfSales DESC;
+
+--Question 2.5
+SELECT p.Category, AVG(cf.Rating) AS AverageRating, COUNT(cf.FeedbackID) AS NumberOfReviews
+FROM workspace.default.customer_feedback cf
+INNER JOIN workspace.default.sales s 
+ON cf.OrderID = s.OrderID
+INNER JOIN workspace.default.products p 
+ON p.ProductID = s.ProductID
+GROUP BY p.Category
+HAVING
+COUNT(cf.FeedbackID) >=50
+ORDER BY 
+AverageRating DESC;
+
+--Question 3.1
+WITH ProductSales AS (
+  SELECT p.Category,p.ProductName,SUM(s.UnitPrice) AS TotalSales
+  FROM workspace.default.products p 
+  JOIN 
+  workspace.default.sales s
+  ON p.ProductID = s.ProductID
+  GROUP BY p.Category,p.ProductName
+),
+RankedProducts AS(
+  SELECT *, ROW_NUMBER()OVER(PARTITION BY Category ORDER BY TotalSales DESC) AS Rank
+  FROM ProductSales
+)
+SELECT Category,ProductName,TotalSales
+FROM RankedProducts
+WHERE Rank = 1
+ORDER BY Category;
+
+--Question 3.2
+SELECT c.CustomerID,CONCAT(c.FirstName,'',c.LastName)AS CustomerName,c.Region,c.Channel AS PrimaryChannel,SUM(UnitPrice) AS TotalPurchases,
+COUNT(s.OrderID) AS TotalOrders,AVG(s.UnitPrice)AS AverageOrderValue
+FROM workspace.default.customers c
+INNER JOIN workspace.default.sales s
+ON 
+c.CustomerID = s.CustomerID
+GROUP BY c.CustomerID,c.FirstName,c.LastName,c.Region,c.Channel
+HAVING COUNT(s.OrderID) > 3
+ORDER BY TotalPurchases DESC;
+
+--Question 3.3
+SELECT p.ProductName,
+       p.Category,
+       SUM(s.UnitPrice) AS TotalSales,
+       SUM(s.Profit) AS TotalProft,
+       (SUM(s.Profit)/SUM(s.UnitPrice))*100 AS ProfitMarginPercent
+FROM workspace.default.products p   
+INNER JOIN workspace.default.sales s
+ON p.ProductID = s.ProductID
+GROUP BY p.ProductName,p.Category
+ORDER BY ProfitMarginPercent DESC;
+
+--Question 3.4
+WITH YearSales AS(
+  SELECT year(OrderDate) AS SalesYear, SUM(UnitPrice) AS TotalSales
+  FROM workspace.default.sales
+  WHERE YEAR(OrderDate) IN (2023,2024)
+  GROUP BY year(OrderDate)
+)
+SELECT
+y2023.TotalSales AS Sales_2023,
+y2024.TotalSales AS Sales_2024,
+((y2024.TotalSales - y2023.TotalSales)/y2023.TotalSales)*100 AS GrowthPercentage
+FROM 
+(SELECT TotalSales FROM YearSales WHERE SalesYear = 2023) y2023,
+(SELECT TotalSales FROM YearSales WHERE SalesYear = 2024) y2024;
+
+
+--Question 3.5
+WITH RegionSales AS(
+  SELECT C.Region,SUM(S.UnitPrice) AS TotalSales,count(s.OrderID) AS TotalOrders
+  FROM workspace.default.customers C
+  INNER JOIN workspace.default.sales S
+  ON C.CustomerID = S.CustomerID
+  GROUP BY C.Region
+)
+SELECT Region,TotalSales,TotalOrders,
+RANK()OVER(ORDER BY TotalSales DESC) AS SalesRank
+FROM RegionSales
+ORDER BY SalesRank;
+
+--Question 4.1
+WITH CustomerSatisfaction AS (
+   SELECT
+       CustomerID,
+       CASE
+           WHEN AVG(Rating) BETWEEN 4 AND 5 THEN 'Highly Satisfied (4-5)'
+           WHEN AVG(Rating) BETWEEN 1 AND 3 THEN 'Less Satisfied (1-3)'
+           ELSE 'Neutral'
+       END AS SatisfactionGroup
+   FROM Customer_Feedback
+   GROUP BY CustomerID
+),
+CustomerOrders AS (
+   SELECT
+       CustomerID,
+       COUNT(OrderID) AS TotalOrders
+   FROM Sales
+   GROUP BY CustomerID
+),
+Combined AS (
+   SELECT
+       cs.CustomerID,
+       cs.SatisfactionGroup,
+       co.TotalOrders
+   FROM CustomerSatisfaction cs
+   JOIN CustomerOrders co
+       ON cs.CustomerID = co.CustomerID
+)
+SELECT
+   SatisfactionGroup,
+   AVG(TotalOrders) AS AvgOrdersPerCustomer,
+   COUNT(CustomerID) AS TotalCustomers
+FROM Combined
+GROUP BY SatisfactionGroup
+ORDER BY AvgOrdersPerCustomer DESC
+
+
+--Question 4.2
+SELECT
+   CASE
+       WHEN DiscountPercent = 0 THEN '0%'
+       WHEN DiscountPercent BETWEEN 1 AND 10 THEN '1-10%'
+       WHEN DiscountPercent BETWEEN 11 AND 20 THEN '11-20%'
+       WHEN DiscountPercent BETWEEN 21 AND 30 THEN '21-30%'
+       ELSE '30%+'
+   END AS DiscountBand,
+ 
+   SUM(UnitPrice) AS TotalSales,
+   SUM(Profit) AS TotalProfit,
+ 
+   (SUM(Profit) * 100.0) / NULLIF(SUM(UnitPrice), 0) AS ProfitMarginPercent
+FROM Sales
+GROUP BY
+   CASE
+       WHEN DiscountPercent = 0 THEN '0%'
+       WHEN DiscountPercent BETWEEN 1 AND 10 THEN '1-10%'
+       WHEN DiscountPercent BETWEEN 11 AND 20 THEN '11-20%'
+       WHEN DiscountPercent BETWEEN 21 AND 30 THEN '21-30%'
+       ELSE '30%+'
+   END
+ORDER BY
+   DiscountBand;
+
+  --Question 4.3
+   WITH ProductPerformance AS (
+   SELECT
+       p.ProductID,
+       p.ProductName,
+       p.Category,
+       SUM(s.UnitPrice) AS TotalRevenue,
+       SUM(s.Quantity) AS TotalVolume,
+       SUM(s.Profit) AS TotalProfit,
+       (SUM(s.Profit) * 100.0) / NULLIF(SUM(s.UnitPrice), 0) AS ProfitMargin,
+       AVG(cf.Rating) AS AvgRating
+   FROM Products p
+   LEFT JOIN Sales s
+       ON p.ProductID = s.ProductID
+   LEFT JOIN Customer_Feedback cf
+       ON s.OrderID = cf.OrderID
+   GROUP BY
+       p.ProductID, p.ProductName, p.Category
+),
+RankedProducts AS (
+   SELECT *,
+       ROW_NUMBER() OVER (ORDER BY TotalRevenue ASC) AS rn
+   FROM ProductPerformance
+)
+SELECT
+   ProductName,
+   Category,
+   TotalRevenue,
+   TotalVolume,
+   TotalProfit,
+   ProfitMargin,
+   AvgRating
+FROM RankedProducts
+WHERE rn <= 5
+ORDER BY TotalRevenue ASC;
+ 
+--Question 5
+--Insight 1
+WITH CustomerSatisfaction AS (
+   SELECT
+       CustomerID,
+       CASE
+           WHEN AVG(Rating) BETWEEN 4 AND 5 THEN 'Highly Satisfied (4-5)'
+           WHEN AVG(Rating) BETWEEN 1 AND 3 THEN 'Less Satisfied (1-3)'
+       END AS SatisfactionGroup
+   FROM Customer_Feedback
+   GROUP BY CustomerID
+),
+CustomerOrders AS (
+   SELECT
+       CustomerID,
+       COUNT(OrderID) AS TotalOrders
+   FROM Sales
+   GROUP BY CustomerID
+)
+SELECT
+   cs.SatisfactionGroup,
+   AVG(co.TotalOrders) AS AvgOrdersPerCustomer,
+   COUNT(cs.CustomerID) AS TotalCustomers
+FROM CustomerSatisfaction cs
+JOIN CustomerOrders co
+   ON cs.CustomerID = co.CustomerID
+WHERE cs.SatisfactionGroup IS NOT NULL
+GROUP BY cs.SatisfactionGroup;    
+
+
+--Insight 2
+SELECT
+   CASE
+       WHEN DiscountPercent = 0 THEN '0%'
+       WHEN DiscountPercent BETWEEN 1 AND 10 THEN '1-10%'
+       WHEN DiscountPercent BETWEEN 11 AND 20 THEN '11-20%'
+       WHEN DiscountPercent BETWEEN 21 AND 30 THEN '21-30%'
+       ELSE '30%+'
+   END AS DiscountBand,
+ 
+   SUM(UnitPrice) AS TotalSales,
+   SUM(Profit) AS TotalProfit,
+   (SUM(Profit) * 100.0) / NULLIF(SUM(UnitPrice), 0) AS ProfitMarginPercent
+ 
+FROM Sales
+GROUP BY
+   CASE
+       WHEN DiscountPercent = 0 THEN '0%'
+       WHEN DiscountPercent BETWEEN 1 AND 10 THEN '1-10%'
+       WHEN DiscountPercent BETWEEN 11 AND 20 THEN '11-20%'
+       WHEN DiscountPercent BETWEEN 21 AND 30 THEN '21-30%'
+       ELSE '30%+'
+   END
+ORDER BY ProfitMarginPercent DESC;
+
+
+--Insight 3
+
+WITH ProductPerformance AS (
+   SELECT
+       p.ProductID,
+       p.ProductName,
+       p.Category,
+       SUM(s.UnitPrice) AS TotalSales,
+       SUM(s.Quantity) AS TotalVolume,
+       SUM(s.Profit) AS TotalProfit,
+       (SUM(s.Profit) * 100.0) / NULLIF(SUM(s.UnitPrice), 0) AS ProfitMargin,
+       AVG(cf.Rating) AS AvgRating
+   FROM Products p
+   LEFT JOIN Sales s
+       ON p.ProductID = s.ProductID
+   LEFT JOIN Customer_Feedback cf
+       ON s.OrderID = cf.OrderID
+   GROUP BY
+       p.ProductID, p.ProductName, p.Category
+)
+SELECT *
+FROM ProductPerformance
+ORDER BY TotalSales ASC
+LIMIT 5;

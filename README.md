@@ -184,11 +184,6 @@ Bottom 5 products by revenue: Water Bottle, Scented Candles, Yoga Mat, Electric 
 ### Tools & Platforms
 
 - 🔷 **Databricks SQL** - Distributed data warehouse
-- 🐍 **Python 3.8+** - Data manipulation & visualization
-- 📊 **SQL** - Core data querying language
-- 📈 **Excel/Pandas** - Data import/export
-- 🗄️ **Apache Spark** (underlying Databricks engine)
-
 -----
 
 ## 📚 Query Complexity Breakdown

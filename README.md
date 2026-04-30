@@ -339,7 +339,7 @@ This project is for educational purposes. Data is synthetic and created for trai
 
 ## 📧 Contact & Questions
 
-**Student:** Tshegofatso Motaung  
+**Student:** Zibonele mabaso  
 **Email:** zibonelemabaso@gmail.com  
 **GitHub:** [zibonelemabaso-jpg](https://github.com/zibonelemabaso-jpg)
 

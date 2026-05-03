@@ -53,8 +53,7 @@ Customers (1) ──→ (Many) Sales (Many) ──→ Products (1)
 ### Prerequisites
 
 - Databricks Workspace Access
-- SQL IDE (DBeaver, VS Code with SQL extension)
-- Python 3.8+ (for data analysis)
+- SQL IDE (Databricks)
 - Git for version control
 
 ### Setup Instructions

@@ -4,7 +4,7 @@
 
 A comprehensive SQL and data analytics project analyzing retail sales, customer behavior, and product performance. Built using **Databricks SQL** and **Python**, this project demonstrates advanced database querying, data transformation, and business intelligence capabilities.
 
-**Student:** Tshegofatso Motaung  
+**Student:** Zibonele Mpendulo Mabaso
 **Project Date:** April 2026  
 **Skill Level:** Advanced SQL & Business Analytics
 

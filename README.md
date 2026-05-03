@@ -2,7 +2,7 @@
 “Advanced SQL analysis of retail sales data using Databricks. Demonstrates CTEs, window functions, and business intelligence insights from 2,500 transactions across 500 customers.”
 # Nova Retail Group Database Analysis 📊
 
-A comprehensive SQL and data analytics project analyzing retail sales, customer behavior, and product performance. Built using **Databricks SQL** and **Python**, this project demonstrates advanced database querying, data transformation, and business intelligence capabilities.
+A comprehensive SQL and data analytics project analyzing retail sales, customer behavior, and product performance. Built using **Databricks SQL**, this project demonstrates advanced database querying, data transformation, and business intelligence capabilities.
 
 **Student:** Zibonele Mpendulo Mabaso
 **Project Date:** April 2026  
